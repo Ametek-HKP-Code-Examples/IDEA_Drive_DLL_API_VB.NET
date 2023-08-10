@@ -14,6 +14,7 @@ Public Class FrmCommandTester
         'Label name and version
         Me.Text = "IDEA Drive DLL Command Software" & " - Version:" & SOFTWARE_VERSION
         BuildPropertyDictionary()
+        InitializeCommandSet()
         cbCommands.Items.AddRange(comboboxBindings.Keys.ToArray())
         cbCommands.SelectedIndex = 0
         'Find available serial ports
@@ -31,6 +32,10 @@ Public Class FrmCommandTester
             btnExecute.Enabled = True
             cbCommands.Enabled = True
         End If
+    End Sub
+
+    Private Sub FrmCommandTester_FormClosing(sender As Object, e As FormClosingEventArgs) Handles MyBase.FormClosing
+        CleanUp()
     End Sub
 
 #End Region
@@ -194,6 +199,138 @@ Public Class FrmCommandTester
         SetCurrentAddress(inputBuffer, inputBufferSize)
         CloseSerial()
     End Sub
+
+    'Private Sub btnDemo_Click(sender As Object, e As EventArgs) Handles btnDemo.Click
+    '    Dim portHandleAddress As Integer = OpenSerial(comPortString)
+    '    Dim defaultAddr As String = cbAddresses.Items(cbAddresses.SelectedIndex).ToString
+    '    defaultAddr = defaultAddr.PadLeft(3, "0")
+    '    Dim inputBufferSize As Integer = defaultAddr.Length
+    '    'Dim inputBufferSize As Integer = inputBuffer.Length
+    '    ' Determine the maximum size of the output string (DLL max is currently 1024).
+    '    Dim outputSize As Integer = 1024
+    '    Dim outputBuffer As New StringBuilder(outputSize)
+    '    tbRSP.Text = "Index Demo"
+    '    tbRSP.Refresh()
+    '    Dim inputBuffer As String
+    '    'Call the DLL method
+    '    For i = 0 To 200
+    '        inputBuffer = "Q-6400,0,0,200000,100000,2000,500,2000,2000,50,8"
+    '        SetCurrentAddress("001", inputBufferSize)
+    '        SendCommand(inputBuffer.ToString, outputBuffer, outputSize)
+    '        System.Threading.Thread.Sleep(250)
+    '        SetCurrentAddress("002", inputBufferSize)
+    '        inputBuffer = "Q12800,0,0,200000,100000,2000,500,2000,2000,50,8"
+    '        SendCommand(inputBuffer.ToString, outputBuffer, outputSize)
+    '        System.Threading.Thread.Sleep(250)
+    '        SetCurrentAddress("003", inputBufferSize)
+    '        inputBuffer = "Q-25600,0,0,200000,100000,2000,500,2000,2000,50,8"
+    '        SendCommand(inputBuffer.ToString, outputBuffer, outputSize)
+    '        System.Threading.Thread.Sleep(250)
+    '        SetCurrentAddress("004", inputBufferSize)
+    '        inputBuffer = "Q51200,0,0,200000,100000,2000,500,2000,2000,50,8"
+    '        SendCommand(inputBuffer.ToString, outputBuffer, outputSize)
+    '        System.Threading.Thread.Sleep(250)
+    '        SetCurrentAddress("005", inputBufferSize)
+    '        inputBuffer = "Q-102400,0,0,200000,100000,2000,500,2000,2000,50,8"
+    '        SendCommand(inputBuffer.ToString, outputBuffer, outputSize)
+    '        System.Threading.Thread.Sleep(5000)
+    '        SetCurrentAddress("", inputBufferSize)
+    '        inputBuffer = "E1500,500,50"
+    '        SendCommand(inputBuffer.ToString, outputBuffer, outputSize)
+    '        tbRSP.Text = "Staggered Demo"
+    '        tbRSP.Refresh()
+    '        For j = 0 To 3
+    '            inputBuffer = "I12800,60000,2000,2000,100000,100000,1000,1000,1500,1500,50,16"
+    '            StaggeredMovement(inputBuffer, inputBufferSize, outputBuffer, outputSize, 100)
+    '            inputBuffer = "I-12800,60000,2000,2000,100000,100000,1000,1000,1500,1500,50,16"
+    '            StaggeredMovementRev(inputBuffer, inputBufferSize, outputBuffer, outputSize, 100)
+    '        Next
+    '        tbRSP.Text = "Speed Demo"
+    '        tbRSP.Refresh()
+    '        inputBuffer = "Q500000,0,0,300000,300000,2000,500,2000,2000,50,8"
+    '        SetCurrentAddress("1", inputBufferSize)
+    '        SendCommand(inputBuffer.ToString, outputBuffer, outputSize)
+    '        inputBuffer = "Q600000,0,0,300000,300000,2000,500,2000,2000,50,8"
+    '        SetCurrentAddress("2", inputBufferSize)
+    '        SendCommand(inputBuffer.ToString, outputBuffer, outputSize)
+    '        inputBuffer = "Q600000,0,0,300000,300000,2000,500,2000,2000,50,8"
+    '        SetCurrentAddress("3", inputBufferSize)
+    '        SendCommand(inputBuffer.ToString, outputBuffer, outputSize)
+    '        inputBuffer = "Q600000,0,0,300000,300000,2000,500,2000,2000,50,8"
+    '        SetCurrentAddress("4", inputBufferSize)
+    '        SendCommand(inputBuffer.ToString, outputBuffer, outputSize)
+    '        inputBuffer = "Q600000,0,0,300000,300000,2000,500,2000,2000,50,8"
+    '        SetCurrentAddress("5", inputBufferSize)
+    '        SendCommand(inputBuffer.ToString, outputBuffer, outputSize)
+
+    '        inputBuffer = "I-64000,500000,2000,2000,100000,100000,2000,2000,2000,2000,50,16"
+    '        SetCurrentAddress("20", inputBufferSize)
+    '        SendCommand(inputBuffer.ToString, outputBuffer, outputSize)
+    '        inputBuffer = "I64000,500000,2000,2000,100000,100000,2000,2000,2000,2000,50,16"
+    '        System.Threading.Thread.Sleep(1750)
+    '        SendCommand(inputBuffer.ToString, outputBuffer, outputSize)
+    '        inputBuffer = "I-64000,500000,2000,2000,100000,100000,2000,2000,2000,2000,50,16"
+    '        System.Threading.Thread.Sleep(1750)
+    '        SendCommand(inputBuffer.ToString, outputBuffer, outputSize)
+    '        inputBuffer = "I64000,500000,2000,2000,100000,100000,2000,2000,2000,2000,50,16"
+    '        System.Threading.Thread.Sleep(1750)
+    '        SendCommand(inputBuffer.ToString, outputBuffer, outputSize)
+    '        inputBuffer = "I-64000,500000,2000,2000,100000,100000,2000,2000,2000,2000,50,16"
+    '        System.Threading.Thread.Sleep(1750)
+    '        SendCommand(inputBuffer.ToString, outputBuffer, outputSize)
+    '        inputBuffer = "I64000,500000,2000,2000,100000,100000,2000,2000,2000,2000,50,16"
+    '        System.Threading.Thread.Sleep(1750)
+    '        SendCommand(inputBuffer.ToString, outputBuffer, outputSize)
+    '        inputBuffer = "I-64000,500000,2000,2000,100000,100000,2000,2000,2000,2000,50,16"
+    '        System.Threading.Thread.Sleep(1750)
+    '        SendCommand(inputBuffer.ToString, outputBuffer, outputSize)
+    '        SetCurrentAddress("", inputBufferSize)
+    '        System.Threading.Thread.Sleep(1750)
+    '        inputBuffer = "E1500,500,100"
+    '        SendCommand(inputBuffer.ToString, outputBuffer, outputSize)
+    '        System.Threading.Thread.Sleep(3000)
+    '        inputBuffer = "A"
+    '        SendCommand(inputBuffer.ToString, outputBuffer, outputSize)
+    '        System.Threading.Thread.Sleep(3000)
+    '    Next
+    '    CloseSerial()
+    'End Sub
+
+    'Sub StaggeredMovement(inputBuffer As String, inputBufferSize As Integer, outputBuffer As StringBuilder, outputSize As Integer, delayTime As Integer)
+    '    SetCurrentAddress("001", inputBufferSize)
+    '    SendCommand(inputBuffer.ToString, outputBuffer, outputSize)
+    '    System.Threading.Thread.Sleep(delayTime)
+    '    SetCurrentAddress("002", inputBufferSize)
+    '    SendCommand(inputBuffer.ToString, outputBuffer, outputSize)
+    '    System.Threading.Thread.Sleep(delayTime)
+    '    SetCurrentAddress("003", inputBufferSize)
+    '    SendCommand(inputBuffer.ToString, outputBuffer, outputSize)
+    '    System.Threading.Thread.Sleep(delayTime)
+    '    SetCurrentAddress("004", inputBufferSize)
+    '    SendCommand(inputBuffer.ToString, outputBuffer, outputSize)
+    '    System.Threading.Thread.Sleep(delayTime)
+    '    SetCurrentAddress("005", inputBufferSize)
+    '    SendCommand(inputBuffer.ToString, outputBuffer, outputSize)
+    '    System.Threading.Thread.Sleep(500)
+    'End Sub
+
+    'Sub StaggeredMovementRev(inputBuffer As String, inputBufferSize As Integer, outputBuffer As StringBuilder, outputSize As Integer, delayTime As Integer)
+    '    SetCurrentAddress("005", inputBufferSize)
+    '    SendCommand(inputBuffer.ToString, outputBuffer, outputSize)
+    '    System.Threading.Thread.Sleep(delayTime)
+    '    SetCurrentAddress("004", inputBufferSize)
+    '    SendCommand(inputBuffer.ToString, outputBuffer, outputSize)
+    '    System.Threading.Thread.Sleep(delayTime)
+    '    SetCurrentAddress("003", inputBufferSize)
+    '    SendCommand(inputBuffer.ToString, outputBuffer, outputSize)
+    '    System.Threading.Thread.Sleep(delayTime)
+    '    SetCurrentAddress("002", inputBufferSize)
+    '    SendCommand(inputBuffer.ToString, outputBuffer, outputSize)
+    '    System.Threading.Thread.Sleep(delayTime)
+    '    SetCurrentAddress("001", inputBufferSize)
+    '    SendCommand(inputBuffer.ToString, outputBuffer, outputSize)
+    '    System.Threading.Thread.Sleep(500)
+    'End Sub
 
     Private Sub cbCommands_SelectedIndexChanged(sender As Object, e As EventArgs) Handles cbCommands.SelectedIndexChanged
         selectedCommand = DirectCast(cbCommands.SelectedItem, String)

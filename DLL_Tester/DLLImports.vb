@@ -324,8 +324,15 @@ Public Module DLLImports
     Public Function UpdateFirmware(ByVal doubleCheck As Boolean) As Boolean
     End Function
 
+    'Information & Data Functions
     <DllImport(DLLPath, CallingConvention:=CallingConvention.Cdecl)>
-    Public Function RestoreFactoryDefaults(ByVal doubleCheck As Boolean) As Boolean
-    End Function
+    Public Sub CleanUp()
+    End Sub
+
+    <DllImport(DLLPath, CallingConvention:=CallingConvention.Cdecl)>
+    Public Sub InitializeCommandSet()
+    End Sub
+
+
 
 End Module
