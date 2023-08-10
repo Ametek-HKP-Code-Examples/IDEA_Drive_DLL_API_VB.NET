@@ -3,8 +3,8 @@ Imports System.Text
 
 Public Module DLLImports
 
-    Public Const DLLPath As String = "IDEADriveCommand.dll" '------ENTER DLL PATH HERE-------
-
+    'Public Const DLLPath As String = "IDEADriveCommand.dll" '------ENTER DLL PATH HERE-------
+    Public Const DLLPath As String = "C:\Programming Files\CPP Programs\IDEADriveDLL\x64\Release\IDEADriveCommand.dll" '------DELETE ME-------
     'Serial Port & Addressing
 
     <DllImport(DLLPath, CallingConvention:=CallingConvention.Cdecl)>
@@ -326,13 +326,35 @@ Public Module DLLImports
 
     'Information & Data Functions
     <DllImport(DLLPath, CallingConvention:=CallingConvention.Cdecl)>
-    Public Sub CleanUp()
-    End Sub
-
-    <DllImport(DLLPath, CallingConvention:=CallingConvention.Cdecl)>
     Public Sub InitializeCommandSet()
     End Sub
 
+    <DllImport(DLLPath, CallingConvention:=CallingConvention.Cdecl)>
+    Public Sub GetCommandName(ByVal input As String, ByVal output As StringBuilder, ByVal outputSize As Integer)
+    End Sub
 
+    <DllImport(DLLPath, CallingConvention:=CallingConvention.Cdecl)>
+    Public Sub GetDescriptiveName(ByVal input As String, ByVal output As StringBuilder, ByVal outputSize As Integer)
+    End Sub
+
+    <DllImport(DLLPath, CallingConvention:=CallingConvention.Cdecl)>
+    Public Function GetNumberOfParametersS(ByVal input As String) As Integer
+    End Function
+
+    <DllImport(DLLPath, CallingConvention:=CallingConvention.Cdecl)>
+    Public Function GetNumberOfParametersC(ByVal input As String) As Integer
+    End Function
+
+    <DllImport(DLLPath, CallingConvention:=CallingConvention.Cdecl)>
+    Public Function GetNumberOfOutputsS(ByVal input As String) As Integer
+    End Function
+
+    <DllImport(DLLPath, CallingConvention:=CallingConvention.Cdecl)>
+    Public Function GetNumberOfOutputsC(ByVal input As String) As Integer
+    End Function
+
+    <DllImport(DLLPath, CallingConvention:=CallingConvention.Cdecl)>
+    Public Sub GetCommandLetter(ByVal input As String, ByVal output As StringBuilder, ByVal outputSize As Integer)
+    End Sub
 
 End Module

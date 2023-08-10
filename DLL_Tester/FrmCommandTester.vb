@@ -32,10 +32,26 @@ Public Class FrmCommandTester
             btnExecute.Enabled = True
             cbCommands.Enabled = True
         End If
+        tbTesting.Text = Testing()
     End Sub
 
+    Private Function Testing() As String
+        Dim portHandleAddress As Integer = OpenSerial(comPortString)
+        Dim inputBufferSize As Integer = 3
+        Dim inputBuffer As String = "GetListProgramNames"
+        Dim outputSize As Integer = 1024
+        Dim outputBuffer As New StringBuilder(outputSize)
+
+        ' Call the DLL method
+        Dim ret As String = GetNumberOfOutputsS(inputBuffer).ToString
+
+        CloseSerial()
+
+        Return ret 'outputBuffer.ToString()
+    End Function
+
     Private Sub FrmCommandTester_FormClosing(sender As Object, e As FormClosingEventArgs) Handles MyBase.FormClosing
-        CleanUp()
+
     End Sub
 
 #End Region

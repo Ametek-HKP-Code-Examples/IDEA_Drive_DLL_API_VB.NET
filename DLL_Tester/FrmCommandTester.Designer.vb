@@ -36,6 +36,8 @@ Partial Class FrmCommandTester
         Me.Label4 = New System.Windows.Forms.Label()
         Me.cbPorts = New System.Windows.Forms.ComboBox()
         Me.btnPorts = New System.Windows.Forms.Button()
+        Me.tbTesting = New System.Windows.Forms.TextBox()
+        Me.lbTesting = New System.Windows.Forms.Label()
         Me.SuspendLayout()
         '
         'btnGetAddresses
@@ -164,11 +166,29 @@ Partial Class FrmCommandTester
         Me.btnPorts.Text = "Scan Serial Ports"
         Me.btnPorts.UseVisualStyleBackColor = True
         '
+        'tbTesting
+        '
+        Me.tbTesting.Location = New System.Drawing.Point(79, 115)
+        Me.tbTesting.Name = "tbTesting"
+        Me.tbTesting.Size = New System.Drawing.Size(579, 20)
+        Me.tbTesting.TabIndex = 20
+        '
+        'lbTesting
+        '
+        Me.lbTesting.AutoSize = True
+        Me.lbTesting.Location = New System.Drawing.Point(12, 118)
+        Me.lbTesting.Name = "lbTesting"
+        Me.lbTesting.Size = New System.Drawing.Size(63, 13)
+        Me.lbTesting.TabIndex = 21
+        Me.lbTesting.Text = "For Testing:"
+        '
         'FrmCommandTester
         '
         Me.AutoScaleDimensions = New System.Drawing.SizeF(6.0!, 13.0!)
         Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font
         Me.ClientSize = New System.Drawing.Size(670, 293)
+        Me.Controls.Add(Me.lbTesting)
+        Me.Controls.Add(Me.tbTesting)
         Me.Controls.Add(Me.btnPorts)
         Me.Controls.Add(Me.cbPorts)
         Me.Controls.Add(Me.Label4)
@@ -203,4 +223,6 @@ Partial Class FrmCommandTester
     Friend WithEvents Label4 As Label
     Friend WithEvents cbPorts As ComboBox
     Friend WithEvents btnPorts As Button
+    Friend WithEvents tbTesting As TextBox
+    Friend WithEvents lbTesting As Label
 End Class
