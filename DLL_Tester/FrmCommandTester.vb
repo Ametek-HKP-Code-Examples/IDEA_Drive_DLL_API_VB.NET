@@ -8,6 +8,8 @@ Public Class FrmCommandTester
     Private selectedCommand As String
     Private IDEADrivefunctionToInvoke As Action(Of StringBuilder, Integer)
     Private portChecker As IO.Ports.SerialPort = Nothing
+    Dim numberOfOut As Integer = 0
+    Dim numberOfIn As Integer = 0
 
 #Region "Initialization & Closing"
     Private Sub FrmCommandTester_Load(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles MyBase.Load
@@ -15,8 +17,6 @@ Public Class FrmCommandTester
         Me.Text = "IDEA Drive DLL Command Software" & " - Version:" & SOFTWARE_VERSION
         BuildPropertyDictionary()
         InitializeCommandSet()
-        cbCommands.Items.AddRange(comboboxBindings.Keys.ToArray())
-        cbCommands.SelectedIndex = 0
         'Find available serial ports
         For Each sp As String In My.Computer.Ports.SerialPortNames
             cbPorts.Items.Add(sp)
@@ -32,26 +32,8 @@ Public Class FrmCommandTester
             btnExecute.Enabled = True
             cbCommands.Enabled = True
         End If
-        tbTesting.Text = Testing()
-    End Sub
-
-    Private Function Testing() As String
-        Dim portHandleAddress As Integer = OpenSerial(comPortString)
-        Dim inputBufferSize As Integer = 3
-        Dim inputBuffer As String = "GetListProgramNames"
-        Dim outputSize As Integer = 1024
-        Dim outputBuffer As New StringBuilder(outputSize)
-
-        ' Call the DLL method
-        Dim ret As String = GetNumberOfOutputsS(inputBuffer).ToString
-
-        CloseSerial()
-
-        Return ret 'outputBuffer.ToString()
-    End Function
-
-    Private Sub FrmCommandTester_FormClosing(sender As Object, e As FormClosingEventArgs) Handles MyBase.FormClosing
-
+        cbCommands.Items.AddRange(comboboxBindings.Keys.ToArray())
+        cbCommands.SelectedIndex = 0
     End Sub
 
 #End Region
@@ -87,21 +69,39 @@ Public Class FrmCommandTester
     'This function will allow the user to execute the downdown menu command with the entered parameters.
     Private Sub btnExecute_Click(sender As Object, e As EventArgs) Handles btnExecute.Click
         Dim resultString As String
+        Dim outputFieldList() As String
+        Dim Size As Integer = 1024 'Largest size (bytes) that DLL can fill
+        Dim parameterOut As String = ""
+        Dim Buffer As New StringBuilder(Size)
+        Dim portHandleAddress As Integer
         Try
-            tbRSP.Text = "" 'Clear response textbox 
-            Dim Size As Integer = 1024 'Largest size (bytes) that DLL can fill
-            Dim Buffer As New StringBuilder(Size)
-            Dim portHandleAddress As Integer
+            tbRSP.Text = "" 'Clear response textboxes
+
+            For i As Integer = 0 To 11
+                Dim tbNameO As String = "tbOutput" & i.ToString()
+                Dim textBoxControlO As TextBox = TryCast(gbOutput.Controls(tbNameO), TextBox)
+                textBoxControlO.Text = ""
+            Next
 
             If cbCommands.SelectedIndex > 26 Then 'Index higher than 26 requires parameter(s).
-                Buffer.Append(tbParams.Text)
-                If Buffer.Length < 1 Then 'No parameters given for a command that requires them
-                    tbRSP.Text = "Parameters are missing for this command!"
-                    Exit Sub
+                'Concantinate parameters
+                For i As Integer = 0 To (numberOfIn - 1)
+                    Dim tbParameter As String = "tbParams" & i.ToString()
+                    Dim textBoxControlP As TextBox = TryCast(gbParameters.Controls(tbParameter), TextBox)
+                    parameterOut = parameterOut & textBoxControlP.Text & ","
+                Next
+                'Remove the last comma
+                If parameterOut.Substring(parameterOut.Length - 1, 1) = "," Then
+                    parameterOut = parameterOut.Substring(0, parameterOut.Length - 1)
                 End If
-            End If
+                Buffer.Append(parameterOut)
+                If Buffer.Length < 1 Then 'No parameters given for a command that requires them
+                        tbRSP.Text = "Parameters are missing for this command!"
+                        Exit Sub
+                    End If
+                End If
 
-            portHandleAddress = OpenSerial(comPortString)
+                portHandleAddress = OpenSerial(comPortString)
             If IsSerialOpen() Then
                 IDEADrivefunctionToInvoke(Buffer, Size) 'Invoke selected DLL function
             Else
@@ -118,11 +118,22 @@ Public Class FrmCommandTester
             MsgBox("Could Not convert result to Integer for processing!")
             Exit Sub
         End Try
+        'Parse results into textboxes
         tbRSP.Text = resultString
+        outputFieldList = resultString.ToString.Split(","c)
+        For i As Integer = 0 To (outputFieldList.Length - 1)
+            Dim tbNameO As String = "tbOutput" & i.ToString()
+            Dim textBoxControlO As TextBox = TryCast(gbOutput.Controls(tbNameO), TextBox)
+            If outputFieldList IsNot Nothing And textBoxControlO IsNot Nothing Then
+                If outputFieldList(i) IsNot Nothing Then
+                    textBoxControlO.Text = outputFieldList(i)
+                End If
+            End If
+        Next
     End Sub
 
     'This function will scan the selected port for IDEA Drives by sending a command and waiting for a response. 
-    'NOTE: address, command character And return characters ARE accounted for.
+    'NOTE: address, command character And return characters ARE accounted for in the DLL.
     Private Sub btnGetAddresses_Click(sender As Object, e As EventArgs) Handles btnGetAddresses.Click
         Dim portHandleAddress As Integer = OpenSerial(comPortString)
         Dim addressList As List(Of Integer)
@@ -166,8 +177,8 @@ Public Class FrmCommandTester
     'This function will send the command entered in the command box. 
     'NOTE: Return character and address ARE accounted for. Command character Is NOT.
     'Example inputs:
-    'Go At Speed:   Q426666,0,0,426666,426666,1000,1000,1000,1000,50,64
-    'Stop:          E5000,5000,50
+    'Go At Speed:       Q426666,0,0,426666,426666,1000,1000,1000,1000,50,64
+    'Stop Immediate:    E5000,5000,50
 
     Private Sub btnSendCommand_Click(sender As Object, e As EventArgs) Handles btnSendCommand.Click
         'Clear previous text in the result textbox.
@@ -194,7 +205,6 @@ Public Class FrmCommandTester
 
     'Combobox Selection
     Private Sub cbAddresses_SelectedIndexChanged(sender As Object, e As EventArgs) Handles cbAddresses.SelectedIndexChanged
-        ' Determine the maximum size of the output string
         Dim inputBuffer As String = cbAddresses.Items(cbAddresses.SelectedIndex).ToString
         Dim inputBufferSize As Integer = inputBuffer.Length
         If (cbAddresses.ToString = "Broadcast") Then
@@ -216,141 +226,81 @@ Public Class FrmCommandTester
         CloseSerial()
     End Sub
 
-    'Private Sub btnDemo_Click(sender As Object, e As EventArgs) Handles btnDemo.Click
-    '    Dim portHandleAddress As Integer = OpenSerial(comPortString)
-    '    Dim defaultAddr As String = cbAddresses.Items(cbAddresses.SelectedIndex).ToString
-    '    defaultAddr = defaultAddr.PadLeft(3, "0")
-    '    Dim inputBufferSize As Integer = defaultAddr.Length
-    '    'Dim inputBufferSize As Integer = inputBuffer.Length
-    '    ' Determine the maximum size of the output string (DLL max is currently 1024).
-    '    Dim outputSize As Integer = 1024
-    '    Dim outputBuffer As New StringBuilder(outputSize)
-    '    tbRSP.Text = "Index Demo"
-    '    tbRSP.Refresh()
-    '    Dim inputBuffer As String
-    '    'Call the DLL method
-    '    For i = 0 To 200
-    '        inputBuffer = "Q-6400,0,0,200000,100000,2000,500,2000,2000,50,8"
-    '        SetCurrentAddress("001", inputBufferSize)
-    '        SendCommand(inputBuffer.ToString, outputBuffer, outputSize)
-    '        System.Threading.Thread.Sleep(250)
-    '        SetCurrentAddress("002", inputBufferSize)
-    '        inputBuffer = "Q12800,0,0,200000,100000,2000,500,2000,2000,50,8"
-    '        SendCommand(inputBuffer.ToString, outputBuffer, outputSize)
-    '        System.Threading.Thread.Sleep(250)
-    '        SetCurrentAddress("003", inputBufferSize)
-    '        inputBuffer = "Q-25600,0,0,200000,100000,2000,500,2000,2000,50,8"
-    '        SendCommand(inputBuffer.ToString, outputBuffer, outputSize)
-    '        System.Threading.Thread.Sleep(250)
-    '        SetCurrentAddress("004", inputBufferSize)
-    '        inputBuffer = "Q51200,0,0,200000,100000,2000,500,2000,2000,50,8"
-    '        SendCommand(inputBuffer.ToString, outputBuffer, outputSize)
-    '        System.Threading.Thread.Sleep(250)
-    '        SetCurrentAddress("005", inputBufferSize)
-    '        inputBuffer = "Q-102400,0,0,200000,100000,2000,500,2000,2000,50,8"
-    '        SendCommand(inputBuffer.ToString, outputBuffer, outputSize)
-    '        System.Threading.Thread.Sleep(5000)
-    '        SetCurrentAddress("", inputBufferSize)
-    '        inputBuffer = "E1500,500,50"
-    '        SendCommand(inputBuffer.ToString, outputBuffer, outputSize)
-    '        tbRSP.Text = "Staggered Demo"
-    '        tbRSP.Refresh()
-    '        For j = 0 To 3
-    '            inputBuffer = "I12800,60000,2000,2000,100000,100000,1000,1000,1500,1500,50,16"
-    '            StaggeredMovement(inputBuffer, inputBufferSize, outputBuffer, outputSize, 100)
-    '            inputBuffer = "I-12800,60000,2000,2000,100000,100000,1000,1000,1500,1500,50,16"
-    '            StaggeredMovementRev(inputBuffer, inputBufferSize, outputBuffer, outputSize, 100)
-    '        Next
-    '        tbRSP.Text = "Speed Demo"
-    '        tbRSP.Refresh()
-    '        inputBuffer = "Q500000,0,0,300000,300000,2000,500,2000,2000,50,8"
-    '        SetCurrentAddress("1", inputBufferSize)
-    '        SendCommand(inputBuffer.ToString, outputBuffer, outputSize)
-    '        inputBuffer = "Q600000,0,0,300000,300000,2000,500,2000,2000,50,8"
-    '        SetCurrentAddress("2", inputBufferSize)
-    '        SendCommand(inputBuffer.ToString, outputBuffer, outputSize)
-    '        inputBuffer = "Q600000,0,0,300000,300000,2000,500,2000,2000,50,8"
-    '        SetCurrentAddress("3", inputBufferSize)
-    '        SendCommand(inputBuffer.ToString, outputBuffer, outputSize)
-    '        inputBuffer = "Q600000,0,0,300000,300000,2000,500,2000,2000,50,8"
-    '        SetCurrentAddress("4", inputBufferSize)
-    '        SendCommand(inputBuffer.ToString, outputBuffer, outputSize)
-    '        inputBuffer = "Q600000,0,0,300000,300000,2000,500,2000,2000,50,8"
-    '        SetCurrentAddress("5", inputBufferSize)
-    '        SendCommand(inputBuffer.ToString, outputBuffer, outputSize)
-
-    '        inputBuffer = "I-64000,500000,2000,2000,100000,100000,2000,2000,2000,2000,50,16"
-    '        SetCurrentAddress("20", inputBufferSize)
-    '        SendCommand(inputBuffer.ToString, outputBuffer, outputSize)
-    '        inputBuffer = "I64000,500000,2000,2000,100000,100000,2000,2000,2000,2000,50,16"
-    '        System.Threading.Thread.Sleep(1750)
-    '        SendCommand(inputBuffer.ToString, outputBuffer, outputSize)
-    '        inputBuffer = "I-64000,500000,2000,2000,100000,100000,2000,2000,2000,2000,50,16"
-    '        System.Threading.Thread.Sleep(1750)
-    '        SendCommand(inputBuffer.ToString, outputBuffer, outputSize)
-    '        inputBuffer = "I64000,500000,2000,2000,100000,100000,2000,2000,2000,2000,50,16"
-    '        System.Threading.Thread.Sleep(1750)
-    '        SendCommand(inputBuffer.ToString, outputBuffer, outputSize)
-    '        inputBuffer = "I-64000,500000,2000,2000,100000,100000,2000,2000,2000,2000,50,16"
-    '        System.Threading.Thread.Sleep(1750)
-    '        SendCommand(inputBuffer.ToString, outputBuffer, outputSize)
-    '        inputBuffer = "I64000,500000,2000,2000,100000,100000,2000,2000,2000,2000,50,16"
-    '        System.Threading.Thread.Sleep(1750)
-    '        SendCommand(inputBuffer.ToString, outputBuffer, outputSize)
-    '        inputBuffer = "I-64000,500000,2000,2000,100000,100000,2000,2000,2000,2000,50,16"
-    '        System.Threading.Thread.Sleep(1750)
-    '        SendCommand(inputBuffer.ToString, outputBuffer, outputSize)
-    '        SetCurrentAddress("", inputBufferSize)
-    '        System.Threading.Thread.Sleep(1750)
-    '        inputBuffer = "E1500,500,100"
-    '        SendCommand(inputBuffer.ToString, outputBuffer, outputSize)
-    '        System.Threading.Thread.Sleep(3000)
-    '        inputBuffer = "A"
-    '        SendCommand(inputBuffer.ToString, outputBuffer, outputSize)
-    '        System.Threading.Thread.Sleep(3000)
-    '    Next
-    '    CloseSerial()
-    'End Sub
-
-    'Sub StaggeredMovement(inputBuffer As String, inputBufferSize As Integer, outputBuffer As StringBuilder, outputSize As Integer, delayTime As Integer)
-    '    SetCurrentAddress("001", inputBufferSize)
-    '    SendCommand(inputBuffer.ToString, outputBuffer, outputSize)
-    '    System.Threading.Thread.Sleep(delayTime)
-    '    SetCurrentAddress("002", inputBufferSize)
-    '    SendCommand(inputBuffer.ToString, outputBuffer, outputSize)
-    '    System.Threading.Thread.Sleep(delayTime)
-    '    SetCurrentAddress("003", inputBufferSize)
-    '    SendCommand(inputBuffer.ToString, outputBuffer, outputSize)
-    '    System.Threading.Thread.Sleep(delayTime)
-    '    SetCurrentAddress("004", inputBufferSize)
-    '    SendCommand(inputBuffer.ToString, outputBuffer, outputSize)
-    '    System.Threading.Thread.Sleep(delayTime)
-    '    SetCurrentAddress("005", inputBufferSize)
-    '    SendCommand(inputBuffer.ToString, outputBuffer, outputSize)
-    '    System.Threading.Thread.Sleep(500)
-    'End Sub
-
-    'Sub StaggeredMovementRev(inputBuffer As String, inputBufferSize As Integer, outputBuffer As StringBuilder, outputSize As Integer, delayTime As Integer)
-    '    SetCurrentAddress("005", inputBufferSize)
-    '    SendCommand(inputBuffer.ToString, outputBuffer, outputSize)
-    '    System.Threading.Thread.Sleep(delayTime)
-    '    SetCurrentAddress("004", inputBufferSize)
-    '    SendCommand(inputBuffer.ToString, outputBuffer, outputSize)
-    '    System.Threading.Thread.Sleep(delayTime)
-    '    SetCurrentAddress("003", inputBufferSize)
-    '    SendCommand(inputBuffer.ToString, outputBuffer, outputSize)
-    '    System.Threading.Thread.Sleep(delayTime)
-    '    SetCurrentAddress("002", inputBufferSize)
-    '    SendCommand(inputBuffer.ToString, outputBuffer, outputSize)
-    '    System.Threading.Thread.Sleep(delayTime)
-    '    SetCurrentAddress("001", inputBufferSize)
-    '    SendCommand(inputBuffer.ToString, outputBuffer, outputSize)
-    '    System.Threading.Thread.Sleep(500)
-    'End Sub
-
     Private Sub cbCommands_SelectedIndexChanged(sender As Object, e As EventArgs) Handles cbCommands.SelectedIndexChanged
-        selectedCommand = DirectCast(cbCommands.SelectedItem, String)
-        IDEADrivefunctionToInvoke = comboboxBindings(selectedCommand)
+        If Not IsSerialOpen() Then
+            Dim portHandleAddress As Integer = OpenSerial(comPortString) 'Open port
+        End If
+
+        selectedCommand = DirectCast(cbCommands.SelectedItem, String) 'Get command name
+        IDEADrivefunctionToInvoke = comboboxBindings(selectedCommand) 'Get command binding for invoke
+
+        'Get number of parameters and outputs and the names of the parameters and outputs names
+        Dim outputSize As Integer = 1024
+        Dim commandCharBuffer As New StringBuilder(outputSize)
+        Dim inputBuffer As String = selectedCommand
+        Dim parameterIn As New StringBuilder(outputSize)
+        Dim parameterList() As String = Nothing
+        Dim outputFieldIn As New StringBuilder(outputSize)
+        Dim outputFieldList() As String = Nothing
+        Dim commandChar As String = ""
+
+        GetCommandLetterFromDescriptive(inputBuffer.ToString, commandCharBuffer, outputSize) 'Get command char
+        commandChar = commandCharBuffer.ToString
+        numberOfIn = GetNumberOfParametersC(commandChar) 'Get number of parameter
+        numberOfOut = GetNumberOfOutputsC(commandChar) 'Get number of output fields
+        If numberOfIn > 0 Then
+            GetParameterList(commandChar, parameterIn, outputSize) 'Get parameters
+            parameterList = parameterIn.ToString.Split(","c) 'Convert stringbuilder to string and parse it into a list
+        End If
+        If numberOfOut > 0 Then
+            GetOutputFieldList(commandChar, outputFieldIn, outputSize) 'Get output fields
+            outputFieldList = outputFieldIn.ToString.Split(","c) 'Convert stringbuilder to string and parse it into a list
+        End If
+
+        CloseSerial() 'Close port
+
+        'Iterate through each control to set visiblilty and text.
+        For i As Integer = 0 To 11
+            Dim lblNameP As String = "lblParams" & i.ToString()
+            Dim tbNameP As String = "tbParams" & i.ToString()
+            Dim lblNameO As String = "lblOutput" & i.ToString()
+            Dim tbNameO As String = "tbOutput" & i.ToString()
+            Dim lblControlP As Label = TryCast(gbParameters.Controls(lblNameP), Label)
+            Dim textBoxControlP As TextBox = TryCast(gbParameters.Controls(tbNameP), TextBox)
+            Dim lblControlO As Label = TryCast(gbOutput.Controls(lblNameO), Label)
+            Dim textBoxControlO As TextBox = TryCast(gbOutput.Controls(tbNameO), TextBox)
+
+            'Clear Textboxes
+            textBoxControlP.Text = ""
+            textBoxControlO.Text = ""
+
+            'Set controls based on the number of parameters returned
+
+            If parameterList IsNot Nothing And i < numberOfIn Then
+                lblControlP.Visible = True
+                lblControlP.Text = parameterList(i)
+            Else
+                lblControlP.Visible = False
+            End If
+            If i < numberOfIn Then
+                textBoxControlP.Visible = True
+            Else
+                textBoxControlP.Visible = False
+            End If
+
+            'Set controls based on the number of output fields returned
+            If outputFieldList IsNot Nothing And i < numberOfOut Then
+                lblControlO.Visible = True
+                lblControlO.Text = outputFieldList(i)
+            Else
+                lblControlO.Visible = False
+            End If
+            If i < numberOfOut Then
+                textBoxControlO.Visible = True
+            Else
+                textBoxControlO.Visible = False
+            End If
+        Next
     End Sub
 
     Private Sub cbPorts_SelectedIndexChanged(sender As Object, e As EventArgs) Handles cbPorts.SelectedIndexChanged
@@ -413,13 +363,13 @@ Public Class FrmCommandTester
         comboboxBindings.Add("Read Drive Address", AddressOf GetDriveAddress)
         comboboxBindings.Add("Read Max Drive Current", AddressOf GetMaxDriveCurrent)
         comboboxBindings.Add("Read Velocity Profile Waveshape", AddressOf GetVelocityProfile)
-        comboboxBindings.Add("Read Control Gain", AddressOf GetControlGain)
+        comboboxBindings.Add("Read Control Gains", AddressOf GetControlGain)
         comboboxBindings.Add("Is Move Executing", AddressOf IsMoveExecuting)
         comboboxBindings.Add("Read Position Velocity", AddressOf GetPositionVelocity)
         comboboxBindings.Add("Is Input Override", AddressOf IsInputOverride)
         comboboxBindings.Add("Read I/O", AddressOf GetIOReading)
         comboboxBindings.Add("Read Fault Parameters", AddressOf GetFaultParameters)
-        comboboxBindings.Add("Read Fault", AddressOf GetFaultReading)
+        comboboxBindings.Add("Read Faults", AddressOf GetFaultReading)
         comboboxBindings.Add("Read Startup Program Name", AddressOf GetStartupProgramName)
         comboboxBindings.Add("Is Program Executing", AddressOf IsProgramExecuting)
         comboboxBindings.Add("Read List Of Program Names", AddressOf GetListProgramNames)
@@ -427,16 +377,15 @@ Public Class FrmCommandTester
         comboboxBindings.Add("Return From Sub", AddressOf ReturnFromSub)
         comboboxBindings.Add("Single Step", AddressOf SingleStep)
         comboboxBindings.Add("Wait For Move", AddressOf WaitForMove)
-        comboboxBindings.Add("Reset", AddressOf Reset)
+        comboboxBindings.Add("Reset Drive", AddressOf Reset)
         comboboxBindings.Add("Abort", AddressOf Abort)
         comboboxBindings.Add("Enable Data Logging", AddressOf EnableDataLogging)
         comboboxBindings.Add("Disable Data Logging", AddressOf DisableDataLogging)
         'Higher index than 26 require parameters.
         comboboxBindings.Add("Configure Encoder", AddressOf SetEncoderConfiguration)
-        comboboxBindings.Add("Set Hall Sensor Configuration", AddressOf SetHallSensorConfiguration)
         comboboxBindings.Add("Set Motor Parameters", AddressOf SetMotorParameters)
         comboboxBindings.Add("Set Motor Type", AddressOf SetMotorType)
-        comboboxBindings.Add("Set Control Reference Configuration", AddressOf SetControlReferenceConfiguration)
+        comboboxBindings.Add("Set Control Reference", AddressOf SetControlReferenceConfiguration)
         comboboxBindings.Add("Set Drive Address", AddressOf SetDriveAddress)
         comboboxBindings.Add("Set Password", AddressOf SetPassword)
         comboboxBindings.Add("Remove Password", AddressOf RemovePassword)
@@ -466,11 +415,11 @@ Public Class FrmCommandTester
         comboboxBindings.Add("Goto If", AddressOf GotoIf)
         comboboxBindings.Add("Goto Sub", AddressOf GotoSub)
         comboboxBindings.Add("Return To", AddressOf ReturnTo)
-        comboboxBindings.Add("Wait", AddressOf WaitTime)
+        comboboxBindings.Add("Wait Command", AddressOf WaitTime)
         comboboxBindings.Add("Label", AddressOf Label)
         comboboxBindings.Add("Comment", AddressOf Comment)
         comboboxBindings.Add("Set Inputs", AddressOf SetInputs)
-        comboboxBindings.Add("Set Input Override", AddressOf SetInputOverride)
+        comboboxBindings.Add("Enable Input Override", AddressOf SetInputOverride)
         'comboboxBindings.Add("Get Non-Volitile Parameter", AddressOf GetNVParameter)
         'comboboxBindings.Add("Download Program", AddressOf DownloadProgram)
         'comboboxBindings.Add("Is Password Valid", AddressOf IsValidPassword)

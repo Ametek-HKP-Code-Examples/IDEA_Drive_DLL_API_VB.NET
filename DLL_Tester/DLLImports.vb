@@ -3,10 +3,9 @@ Imports System.Text
 
 Public Module DLLImports
 
-    'Public Const DLLPath As String = "IDEADriveCommand.dll" '------ENTER DLL PATH HERE-------
-    Public Const DLLPath As String = "C:\Programming Files\CPP Programs\IDEADriveDLL\x64\Release\IDEADriveCommand.dll" '------DELETE ME-------
-    'Serial Port & Addressing
+    Public Const DLLPath As String = "IDEADriveCommand.dll" '------ENTER DLL PATH HERE-------
 
+    'Serial Port & Addressing
     <DllImport(DLLPath, CallingConvention:=CallingConvention.Cdecl)>
     Public Function OpenSerial(ByVal input As String) As Integer
     End Function
@@ -113,6 +112,7 @@ Public Module DLLImports
     <DllImport(DLLPath, CallingConvention:=CallingConvention.Cdecl)>
     Public Sub GetListProgramNames(ByVal output As StringBuilder, ByVal outputSize As Integer)
     End Sub
+
     'No R/W Functions
     <DllImport(DLLPath, CallingConvention:=CallingConvention.Cdecl)>
     Public Sub Noop()
@@ -354,7 +354,19 @@ Public Module DLLImports
     End Function
 
     <DllImport(DLLPath, CallingConvention:=CallingConvention.Cdecl)>
-    Public Sub GetCommandLetter(ByVal input As String, ByVal output As StringBuilder, ByVal outputSize As Integer)
+    Public Sub GetCommandLetterFromCommand(ByVal input As String, ByVal output As StringBuilder, ByVal outputSize As Integer)
+    End Sub
+
+    <DllImport(DLLPath, CallingConvention:=CallingConvention.Cdecl)>
+    Public Sub GetCommandLetterFromDescriptive(ByVal input As String, ByVal output As StringBuilder, ByVal outputSize As Integer)
+    End Sub
+
+    <DllImport(DLLPath, CallingConvention:=CallingConvention.Cdecl)>
+    Public Sub GetParameterList(ByVal input As String, ByVal output As StringBuilder, ByVal outputSize As Integer)
+    End Sub
+
+    <DllImport(DLLPath, CallingConvention:=CallingConvention.Cdecl)>
+    Public Sub GetOutputFieldList(ByVal input As String, ByVal output As StringBuilder, ByVal outputSize As Integer)
     End Sub
 
 End Module
