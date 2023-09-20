@@ -3,7 +3,7 @@ Imports System.Text
 
 Public Module DLLImports
 
-    Public Const DLLPath As String = "IDEADriveCommand.dll" '------ENTER DLL PATH HERE-------
+    Public Const DLLPath As String = "..\IDEADriveCommand.dll" '------ENTER DLL PATH HERE-------
 
     'Serial Port & Addressing
     <DllImport(DLLPath, CallingConvention:=CallingConvention.Cdecl)>
@@ -367,6 +367,10 @@ Public Module DLLImports
 
     <DllImport(DLLPath, CallingConvention:=CallingConvention.Cdecl)>
     Public Sub GetOutputFieldList(ByVal input As String, ByVal output As StringBuilder, ByVal outputSize As Integer)
+    End Sub
+
+    <DllImport(DLLPath, CallingConvention:=CallingConvention.Cdecl)>
+    Public Sub GetCommandList(ByVal output As StringBuilder)
     End Sub
 
 End Module
