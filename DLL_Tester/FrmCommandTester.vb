@@ -227,6 +227,9 @@ Public Class FrmCommandTester
     End Sub
 
     Private Sub cbCommands_SelectedIndexChanged(sender As Object, e As EventArgs) Handles cbCommands.SelectedIndexChanged
+        If comPortString Is Nothing Then
+            Exit Sub
+        End If
         If Not IsSerialOpen() Then
             Dim portHandleAddress As Integer = OpenSerial(comPortString) 'Open port
         End If

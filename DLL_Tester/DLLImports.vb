@@ -2,9 +2,10 @@
 Imports System.Text
 
 Public Module DLLImports
-
-    Public Const DLLPath As String = "..\IDEADriveCommand.dll" '------ENTER DLL PATH HERE-------
-
+    'For x64
+    Public Const DLLPath As String = "..\IDEADriveCommandx64.dll" '------ENTER DLL PATH HERE-------
+    'For x86, uncomment next line
+    'Public Const DLLPath As String = "..\IDEADriveCommandx86.dll" '------ENTER DLL PATH HERE-------
     'Serial Port & Addressing
     <DllImport(DLLPath, CallingConvention:=CallingConvention.Cdecl)>
     Public Function OpenSerial(ByVal input As String) As Integer
