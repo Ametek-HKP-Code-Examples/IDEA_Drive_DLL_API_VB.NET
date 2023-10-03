@@ -44,7 +44,7 @@ Public Class FrmCommandTester
         cbPorts.Items.Clear()
         cbAddresses.Items.Clear()
         tbRSP.Text = ""
-        'Find available serial ports
+        'Find available serial ports and add them to the combobox
         For Each sp As String In My.Computer.Ports.SerialPortNames
             cbPorts.Items.Add(sp)
         Next
@@ -70,7 +70,7 @@ Public Class FrmCommandTester
     Private Sub btnExecute_Click(sender As Object, e As EventArgs) Handles btnExecute.Click
         Dim resultString As String
         Dim outputFieldList() As String
-        Dim Size As Integer = 1024 'Largest size (bytes) that DLL can fill
+        Dim Size As Integer = 1024 'Largest size (Bytes) that DLL can fill
         Dim parameterOut As String = ""
         Dim Buffer As New StringBuilder(Size)
         Dim portHandleAddress As Integer
@@ -85,7 +85,7 @@ Public Class FrmCommandTester
 
             If cbCommands.SelectedIndex > 26 Then 'Index higher than 26 requires parameter(s).
                 'Concantinate parameters
-                For i As Integer = 0 To (numberOfIn - 1)
+                For i As Integer = 0 To (numberOfIn - 1) 'Controls are labeled in a specific numerical order for easy count loop commands.
                     Dim tbParameter As String = "tbParams" & i.ToString()
                     Dim textBoxControlP As TextBox = TryCast(gbParameters.Controls(tbParameter), TextBox)
                     parameterOut = parameterOut & textBoxControlP.Text & ","
@@ -95,20 +95,23 @@ Public Class FrmCommandTester
                     parameterOut = parameterOut.Substring(0, parameterOut.Length - 1)
                 End If
                 Buffer.Append(parameterOut)
-                If Buffer.Length < 1 Then 'No parameters given for a command that requires them
-                        tbRSP.Text = "Parameters are missing for this command!"
-                        Exit Sub
-                    End If
-                End If
 
-                portHandleAddress = OpenSerial(comPortString)
+                If Buffer.Length < 1 Then 'No parameters given for a command that requires them
+                    tbRSP.Text = "Parameters are missing for this command!"
+                    Exit Sub
+                End If
+            End If
+
+            portHandleAddress = OpenSerial(comPortString)
             If IsSerialOpen() Then
                 IDEADrivefunctionToInvoke(Buffer, Size) 'Invoke selected DLL function
             Else
                 CloseSerial()
                 Exit Sub
             End If
+
             CloseSerial()
+
             If (cbCommands.SelectedIndex > 18) Then 'Every command above 18 in the dictorary has no data return.
                 resultString = "Command Sent."
             Else
@@ -118,6 +121,7 @@ Public Class FrmCommandTester
             MsgBox("Could Not convert result to Integer for processing!")
             Exit Sub
         End Try
+
         'Parse results into textboxes
         tbRSP.Text = resultString
         outputFieldList = resultString.ToString.Split(","c)
@@ -207,7 +211,7 @@ Public Class FrmCommandTester
     Private Sub cbAddresses_SelectedIndexChanged(sender As Object, e As EventArgs) Handles cbAddresses.SelectedIndexChanged
         Dim inputBuffer As String = cbAddresses.Items(cbAddresses.SelectedIndex).ToString
         Dim inputBufferSize As Integer = inputBuffer.Length
-        If (cbAddresses.ToString = "Broadcast") Then
+        If (cbAddresses.ToString = "Broadcast") Then 'Option to send command to all drives
             inputBuffer = ""
             inputBufferSize = 1
         Else
@@ -225,7 +229,7 @@ Public Class FrmCommandTester
         SetCurrentAddress(inputBuffer, inputBufferSize)
         CloseSerial()
     End Sub
-
+    'When the command is changed, several properties are retrieved from the DLL and used to set labels and visibility for the parameter and output fields.
     Private Sub cbCommands_SelectedIndexChanged(sender As Object, e As EventArgs) Handles cbCommands.SelectedIndexChanged
         If comPortString Is Nothing Then
             Exit Sub
@@ -355,7 +359,7 @@ Public Class FrmCommandTester
 #End Region
 
 #Region "Dictionary"
-    'This dictionary links command names (for GUI) to DLL functions.
+    'This dictionary links command names (for GUI) to DLL functions. Note: this functionality is now available in DLL calls.
     Private Sub BuildPropertyDictionary()
         comboboxBindings.Add("Read Firmware Version", AddressOf GetFWVersion)
         comboboxBindings.Add("Read Encoder Configuration", AddressOf GetEncoderConfiguration)
