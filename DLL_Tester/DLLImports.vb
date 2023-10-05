@@ -7,6 +7,8 @@ Public Module DLLImports
     'For x86, uncomment next line and comment out the line above.
     'Public Const DLLPath As String = "..\IDEADriveCommandx86.dll" '------ENTER DLL PATH HERE-------
 
+    'Notes: "Cdecl" calling convention required. Match parameter and return types to DLL. Sub for void returns.
+
     'Serial Port & Addressing
     <DllImport(DLLPath, CallingConvention:=CallingConvention.Cdecl)>
     Public Function OpenSerial(ByVal input As String) As Integer
@@ -328,7 +330,7 @@ Public Module DLLImports
 
     'Information & Data Functions
     <DllImport(DLLPath, CallingConvention:=CallingConvention.Cdecl)>
-    Public Sub InitializeCommandSet()
+    Public Sub InitializeCommandSet() 'Call to this function is REQUIRED to use the proceeding functions.
     End Sub
 
     <DllImport(DLLPath, CallingConvention:=CallingConvention.Cdecl)>

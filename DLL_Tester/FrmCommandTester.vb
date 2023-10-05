@@ -3,7 +3,7 @@ Imports System.Text
 
 Public Class FrmCommandTester
     Private comPortString As String
-    Public SOFTWARE_VERSION = My.Application.Info.Version.ToString 'Software Version change this in Project Properties/Application/Assembly Information
+    Public SOFTWARE_VERSION = My.Application.Info.Version.ToString 'Software Version (from assembly file)
     Private comboboxBindings As New Dictionary(Of String, Action(Of StringBuilder, Integer))()
     Private selectedCommand As String
     Private IDEADrivefunctionToInvoke As Action(Of StringBuilder, Integer)
@@ -11,33 +11,38 @@ Public Class FrmCommandTester
     Dim numberOfOut As Integer = 0
     Dim numberOfIn As Integer = 0
 
-#Region "Initialization & Closing"
+#Region "Initialization"
     Private Sub FrmCommandTester_Load(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles MyBase.Load
-        'Label name and version
-        Me.Text = "IDEA Drive DLL Command Software" & " - Version:" & SOFTWARE_VERSION
-        BuildPropertyDictionary()
-        InitializeCommandSet()
-        'Find available serial ports
-        For Each sp As String In My.Computer.Ports.SerialPortNames
-            cbPorts.Items.Add(sp)
-        Next
-        'Set GUI controls accordingly
-        If cbPorts.Items.Count = 0 Then
-            cbPorts.Enabled = False
-            btnSendCommand.Enabled = False
-            btnGetAddresses.Enabled = False
-            btnExecute.Enabled = False
-        Else
-            cbPorts.SelectedIndex = 0
-            btnExecute.Enabled = True
-            cbCommands.Enabled = True
-        End If
-        cbCommands.Items.AddRange(comboboxBindings.Keys.ToArray())
-        cbCommands.SelectedIndex = 0
+        Try
+            'Label name and version
+            Me.Text = "IDEA Drive DLL Command Software" & " - Version:" & SOFTWARE_VERSION
+            BuildPropertyDictionary()
+            InitializeCommandSet()
+            'Find available serial ports
+            For Each sp As String In My.Computer.Ports.SerialPortNames
+                cbPorts.Items.Add(sp)
+            Next
+            'Set GUI controls accordingly
+            If cbPorts.Items.Count = 0 Then
+                cbPorts.Enabled = False
+                btnSendCommand.Enabled = False
+                btnGetAddresses.Enabled = False
+                btnExecute.Enabled = False
+            Else
+                cbPorts.SelectedIndex = 0
+                btnExecute.Enabled = True
+                cbCommands.Enabled = True
+            End If
+            cbCommands.Items.AddRange(comboboxBindings.Keys.ToArray())
+            cbCommands.SelectedIndex = 0
+        Catch ex As Exception
+            MsgBox("Error in form load: " & ex.ToString)
+        End Try
     End Sub
 
 #End Region
 
+#Region "Form Conrtol"
     'Buttons
     Private Sub btnPorts_Click(sender As Object, e As EventArgs) Handles btnPorts.Click
         'Clear current items
@@ -139,43 +144,45 @@ Public Class FrmCommandTester
     'This function will scan the selected port for IDEA Drives by sending a command and waiting for a response. 
     'NOTE: address, command character And return characters ARE accounted for in the DLL.
     Private Sub btnGetAddresses_Click(sender As Object, e As EventArgs) Handles btnGetAddresses.Click
-        Dim portHandleAddress As Integer = OpenSerial(comPortString)
-        Dim addressList As List(Of Integer)
+        Try
+            Dim portHandleAddress As Integer = OpenSerial(comPortString)
+            Dim addressList As List(Of Integer)
 
+            tbRSP.Text = ""
+            cbAddresses.Items.Clear()
+            cbAddresses.Enabled = False
+            btnExecute.Enabled = False
+            cbCommands.Enabled = False
+            btnGetAddresses.Enabled = False
+            cbCommands.Enabled = False
+            Me.Refresh()
+            addressList = GetAddressList()
 
-        tbRSP.Text = ""
-        cbAddresses.Items.Clear()
-        cbAddresses.Enabled = False
-        btnExecute.Enabled = False
-        cbCommands.Enabled = False
-        btnGetAddresses.Enabled = False
-        cbCommands.Enabled = False
-        Me.Refresh()
-        addressList = GetAddressList()
+            'Close serial port if it is open
+            If IsSerialOpen() Then
+                CloseSerial()
+            End If
 
-        'Close serial port if it is open
-        If IsSerialOpen() Then
-            CloseSerial()
-        End If
+            If addressList.Count = 1 Then
+                cbAddresses.Items.Add(addressList.First)
+                cbAddresses.SelectedIndex = 0
+                btnExecute.Enabled = True
+                cbCommands.Enabled = True
+            ElseIf addressList.Count > 1 Then
+                cbAddresses.Enabled = True
+                For Each item In addressList
+                    cbAddresses.Items.Add(item)
+                Next
+                cbAddresses.Items.Add("Broadcast")
+                cbAddresses.SelectedIndex = 0
+                btnExecute.Enabled = True
+                cbCommands.Enabled = True
 
-        If addressList.Count = 1 Then
-            cbAddresses.Items.Add(addressList.First)
-            cbAddresses.SelectedIndex = 0
-            btnExecute.Enabled = True
-            cbCommands.Enabled = True
-        ElseIf addressList.Count > 1 Then
-            cbAddresses.Enabled = True
-            For Each item In addressList
-                cbAddresses.Items.Add(item)
-            Next
-            cbAddresses.Items.Add("Broadcast")
-            cbAddresses.SelectedIndex = 0
-            btnExecute.Enabled = True
-            cbCommands.Enabled = True
-
-        End If
-        btnGetAddresses.Enabled = True
-
+            End If
+            btnGetAddresses.Enabled = True
+        Catch ex As Exception
+            MsgBox("Error in btnGetAddresses_Click function: " & ex.ToString)
+        End Try
     End Sub
 
     'This function will send the command entered in the command box. 
@@ -185,49 +192,58 @@ Public Class FrmCommandTester
     'Stop Immediate:    E5000,5000,50
 
     Private Sub btnSendCommand_Click(sender As Object, e As EventArgs) Handles btnSendCommand.Click
-        'Clear previous text in the result textbox.
-        tbRSP.Text = ""
+        Try
+            'Clear previous text in the result textbox.
+            tbRSP.Text = ""
 
-        Dim inputBuffer As String = tbCMD.Text
+            Dim inputBuffer As String = tbCMD.Text
 
-        If inputBuffer.Length < 1 Then 'Validate Input
-            Exit Sub
-        End If
-        Dim portHandleAddress As Integer = OpenSerial(comPortString)
-        'Dim inputBufferSize As Integer = inputBuffer.Length
-        ' Determine the maximum size of the output string (DLL max is currently 1024).
-        Dim outputSize As Integer = 1024
-        Dim outputBuffer As New StringBuilder(outputSize)
+            If inputBuffer.Length < 1 Then 'Validate Input
+                Exit Sub
+            End If
+            Dim portHandleAddress As Integer = OpenSerial(comPortString)
+            'Dim inputBufferSize As Integer = inputBuffer.Length
+            ' Determine the maximum size of the output string (DLL max is currently 1024).
+            Dim outputSize As Integer = 1024
+            Dim outputBuffer As New StringBuilder(outputSize)
 
-        ' Call the DLL method
-        SendCommand(inputBuffer.ToString, outputBuffer, outputSize)
+            ' Call the DLL method
+            SendCommand(inputBuffer.ToString, outputBuffer, outputSize)
 
-        ' Extract the result from the StringBuilder and put it in the response textbox.
-        tbRSP.Text = outputBuffer.ToString()
-        CloseSerial()
+            ' Extract the result from the StringBuilder and put it in the response textbox.
+            tbRSP.Text = outputBuffer.ToString()
+            CloseSerial()
+        Catch ex As Exception
+            MsgBox("Error in btnSendCommand_Click function: " & ex.ToString)
+        End Try
+
     End Sub
 
     'Combobox Selection
     Private Sub cbAddresses_SelectedIndexChanged(sender As Object, e As EventArgs) Handles cbAddresses.SelectedIndexChanged
-        Dim inputBuffer As String = cbAddresses.Items(cbAddresses.SelectedIndex).ToString
-        Dim inputBufferSize As Integer = inputBuffer.Length
-        If (cbAddresses.ToString = "Broadcast") Then 'Option to send command to all drives
-            inputBuffer = ""
-            inputBufferSize = 1
-        Else
-            inputBuffer = inputBuffer.PadLeft(3, "0")
-        End If
-        Dim portHandleAddress As Integer = OpenSerial(comPortString)
-        Dim outputSize As Integer = 100
-        Dim outputBuffer As New StringBuilder(outputSize)
-        'Logic for broadcast mode
-        If (inputBuffer = "Broadcast") Then
-            inputBuffer = ""
-            inputBufferSize = 1
-        End If
-        ' Call the DLL method
-        SetCurrentAddress(inputBuffer, inputBufferSize)
-        CloseSerial()
+        Try
+            Dim inputBuffer As String = cbAddresses.Items(cbAddresses.SelectedIndex).ToString
+            Dim inputBufferSize As Integer = inputBuffer.Length
+            If (cbAddresses.ToString = "Broadcast") Then 'Option to send command to all drives
+                inputBuffer = ""
+                inputBufferSize = 1
+            Else
+                inputBuffer = inputBuffer.PadLeft(3, "0")
+            End If
+            Dim portHandleAddress As Integer = OpenSerial(comPortString)
+            Dim outputSize As Integer = 100
+            Dim outputBuffer As New StringBuilder(outputSize)
+            'Logic for broadcast mode
+            If (inputBuffer = "Broadcast") Then
+                inputBuffer = ""
+                inputBufferSize = 1
+            End If
+            ' Call the DLL method
+            SetCurrentAddress(inputBuffer, inputBufferSize)
+            CloseSerial()
+        Catch ex As Exception
+            MsgBox("Error in cbAddresses_SelectedIndexChanged function: " & ex.ToString)
+        End Try
     End Sub
     'When the command is changed, several properties are retrieved from the DLL and used to set labels and visibility for the parameter and output fields.
     Private Sub cbCommands_SelectedIndexChanged(sender As Object, e As EventArgs) Handles cbCommands.SelectedIndexChanged
@@ -282,7 +298,6 @@ Public Class FrmCommandTester
             textBoxControlO.Text = ""
 
             'Set controls based on the number of parameters returned
-
             If parameterList IsNot Nothing And i < numberOfIn Then
                 lblControlP.Visible = True
                 lblControlP.Text = parameterList(i)
@@ -310,10 +325,13 @@ Public Class FrmCommandTester
         Next
     End Sub
 
+    'When port is changed, scan for addresses on selected port.
     Private Sub cbPorts_SelectedIndexChanged(sender As Object, e As EventArgs) Handles cbPorts.SelectedIndexChanged
         comPortString = cbPorts.SelectedItem.ToString
-        Me.btnGetAddresses.PerformClick() 'Change this
+        Me.btnGetAddresses.PerformClick()
     End Sub
+
+#End Region
 
 #Region "Utilities"
 
@@ -359,7 +377,8 @@ Public Class FrmCommandTester
 #End Region
 
 #Region "Dictionary"
-    'This dictionary links command names (for GUI) to DLL functions. Note: this functionality is now available in DLL calls.
+    'This dictionary links command names (for GUI) to DLL functions. Note: With new DLL update, 
+    'this functionality is now available in DLL calls.
     Private Sub BuildPropertyDictionary()
         comboboxBindings.Add("Read Firmware Version", AddressOf GetFWVersion)
         comboboxBindings.Add("Read Encoder Configuration", AddressOf GetEncoderConfiguration)
@@ -427,6 +446,7 @@ Public Class FrmCommandTester
         comboboxBindings.Add("Comment", AddressOf Comment)
         comboboxBindings.Add("Set Inputs", AddressOf SetInputs)
         comboboxBindings.Add("Enable Input Override", AddressOf SetInputOverride)
+        'Commands not implemented in this program
         'comboboxBindings.Add("Get Non-Volitile Parameter", AddressOf GetNVParameter)
         'comboboxBindings.Add("Download Program", AddressOf DownloadProgram)
         'comboboxBindings.Add("Is Password Valid", AddressOf IsValidPassword)
