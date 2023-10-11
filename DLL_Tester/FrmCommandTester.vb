@@ -15,7 +15,7 @@ Public Class FrmCommandTester
     Private Sub FrmCommandTester_Load(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles MyBase.Load
         Try
             'Label name and version
-            Me.Text = "IDEA Drive DLL Command Software" & " - Version:" & SOFTWARE_VERSION
+            Me.Text = "IDEA Drive DLL Command Software - Version:" & SOFTWARE_VERSION
             BuildPropertyDictionary()
             InitializeCommandSet()
             'Find available serial ports
@@ -44,6 +44,7 @@ Public Class FrmCommandTester
 
 #Region "Form Conrtol"
     'Buttons
+    'Scan serial ports to find available ports.
     Private Sub btnPorts_Click(sender As Object, e As EventArgs) Handles btnPorts.Click
         'Clear current items
         cbPorts.Items.Clear()
@@ -91,9 +92,9 @@ Public Class FrmCommandTester
             If cbCommands.SelectedIndex > 26 Then 'Index higher than 26 requires parameter(s).
                 'Concantinate parameters
                 For i As Integer = 0 To (numberOfIn - 1) 'Controls are labeled in a specific numerical order for easy count loop commands.
-                    Dim tbParameter As String = "tbParams" & i.ToString()
-                    Dim textBoxControlP As TextBox = TryCast(gbParameters.Controls(tbParameter), TextBox)
-                    parameterOut = parameterOut & textBoxControlP.Text & ","
+                    Dim tbParameter As String = "tbParams" & i.ToString() 'Build string for pre-defined control name
+                    Dim textBoxControlP As TextBox = TryCast(gbParameters.Controls(tbParameter), TextBox) 'Try to make a variable that addresses the textbox.
+                    parameterOut = parameterOut & textBoxControlP.Text & "," 'Add the text to the specificed textbox
                 Next
                 'Remove the last comma
                 If parameterOut.Substring(parameterOut.Length - 1, 1) = "," Then
@@ -107,6 +108,7 @@ Public Class FrmCommandTester
                 End If
             End If
 
+            'Open port and check that it has opened successfully.
             portHandleAddress = OpenSerial(comPortString)
             If IsSerialOpen() Then
                 IDEADrivefunctionToInvoke(Buffer, Size) 'Invoke selected DLL function
