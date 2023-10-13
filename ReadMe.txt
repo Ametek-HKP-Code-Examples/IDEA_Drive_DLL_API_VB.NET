@@ -46,4 +46,4 @@ Each function will be generated as a VI and can be imported to your project. An 
 See the IDEADriveDLLCommandList xlsx file (MS Excel spreadsheet). This document contains a list of all DLL API functions, parameter data types, examples, etc.
 For IDEA Drive specific command structure and information, see the IDEA Drive Communications Manual for more details.
  
-See the EULA.rtf file for our licensing agreement on all the software contained in this repo.
+See the EULA.rtf file for our licensing agreement on all the software contained in this repository.
